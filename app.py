@@ -17,8 +17,6 @@ import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Optional
-from urllib.parse import quote
-
 from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from google.auth.transport.requests import Request
@@ -47,19 +45,11 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 CREDENTIALS_PATH = os.path.join(PROJECT_ROOT, "credentials.json")
 TOKEN_PATH = os.path.join(PROJECT_ROOT, "token.json")
 
-# Pre-demo splash: mailto for OAuth test-user requests (demo route only).
-_SPLASH_TEST_ACCESS_BODY = """Hi Christian,
-
-I would like to test InboxIQ with my Gmail account. Please add this email as an approved OAuth test user.
-
-Email:
-Name/Organization:
-
-Thank you."""
-SPLASH_TEST_ACCESS_MAILTO = (
-    "mailto:christiandhopoku8@gmail.com"
-    f"?subject={quote('InboxIQ Test Access Request', safe='')}"
-    f"&body={quote(_SPLASH_TEST_ACCESS_BODY, safe='')}"
+# Pre-demo splash: Gmail compose URL for OAuth test-user requests (demo route only).
+SPLASH_TEST_ACCESS_GMAIL_COMPOSE_URL = (
+    "https://mail.google.com/mail/?view=cm&fs=1&to=christiandhopoku8@gmail.com"
+    "&su=InboxIQ%20Test%20Access%20Request"
+    "&body=Hi%20Christian,%0A%0AI%20would%20like%20to%20test%20InboxIQ%20with%20my%20Gmail%20account.%20Please%20add%20this%20email%20as%20an%20approved%20OAuth%20test%20user.%0A%0AEmail:%0AName/Organization:%0A%0AThank%20you."
 )
 
 # -----------------------------------------------------------------------------
@@ -1017,7 +1007,7 @@ def index():
         live_setup_variant=None,
         live_fetch_error=None,
         json_route="api_analyze",
-        splash_test_access_mailto=SPLASH_TEST_ACCESS_MAILTO,
+        splash_test_access_gmail_url=SPLASH_TEST_ACCESS_GMAIL_COMPOSE_URL,
     )
 
 

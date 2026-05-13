@@ -69,8 +69,13 @@
           <a
             class="btn btn--splash-ghost"
             id="splash-request-access"
-            href="{{ splash_test_access_mailto }}"
+            href="{{ splash_test_access_gmail_url }}"
+            target="_blank"
+            rel="noopener noreferrer"
           >Request Test Access</a>
+          <p class="pre-demo-splash__access-email">
+            Email: christiandhopoku8@gmail.com
+          </p>
           <p class="pre-demo-splash__access-hint">
             To test the live Gmail connection, request access and I'll add your Gmail as an approved OAuth test user.
           </p>
@@ -115,7 +120,7 @@
     {% if inbox_mode == 'demo' %}
     <div class="banner-demo banner-demo--compact" role="note">
       <p class="banner-demo__text">
-        Try <strong>Live Inbox</strong> after adding <code>credentials.json</code> — see README “Live Gmail Sync Setup”.
+        Live Gmail access is available for approved OAuth test users.
       </p>
     </div>
     {% endif %}

@@ -1221,7 +1221,8 @@ a.btn--splash-ghost {
   gap: 0.45rem;
 }
 
-.pre-demo-splash__access-hint {
+.pre-demo-splash__access-hint,
+.pre-demo-splash__access-email {
   margin: 0;
   font-size: 0.76rem;
   line-height: 1.45;
