@@ -1,6 +1,8 @@
 # InboxIQ
 
-**InboxIQ** is an AI-powered inbox assistant that converts unstructured emails into structured tasks, deadlines, scheduling actions, and suggested replies.
+**Live Demo:** https://inboxiq-8egt.onrender.com
+
+InboxIQ is an AI-powered inbox assistant that converts unstructured emails into structured tasks, deadlines, priorities, scheduling needs, and suggested replies.
 
 ## Problem
 
