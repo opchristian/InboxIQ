@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InboxIQ — Inbox Assistant</title>
+  {% if inbox_mode == 'live' %}
+  <link rel="prefetch" href="{{ url_for('index') }}" as="document">
+  {% endif %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  {% if inbox_mode == 'demo' %}
+  <script>
+    (function () {
+      try {
+        if (
+          sessionStorage.getItem("inboxiq_splash_dismissed") === "1" ||
+          /(?:^|[?&])skip_splash=1(?:&|$)/.test(location.search)
+        ) {
+          document.documentElement.classList.add("splash-skipped");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  {% endif %}
+</head>
+<body>
+  {% if inbox_mode == 'demo' %}
+  <div
+    id="pre-demo-splash"
+    class="pre-demo-splash"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="splash-title"
+    aria-describedby="splash-summary"
+  >
+    <div class="pre-demo-splash__backdrop" aria-hidden="true"></div>
+    <div class="pre-demo-splash__card">
+      <div class="pre-demo-splash__brand">
+        <span class="logo logo--splash" aria-hidden="true">◈</span>
+        <p class="pre-demo-splash__product">InboxIQ</p>
+      </div>
+      <h2 id="splash-title" class="pre-demo-splash__title">Welcome</h2>
+      <p id="splash-summary" class="pre-demo-splash__lead">
+        InboxIQ connects to Gmail through Google OAuth and turns recent messages into structured action cards with
+        categories, priorities, deadlines, scheduling needs, and suggested replies.
+      </p>
+      <div class="pre-demo-splash__notice" role="note">
+        <p class="pre-demo-splash__notice-title">OAuth Testing &amp; Reviewer Access</p>
+        <p class="pre-demo-splash__notice-body">
+          InboxIQ connects to Gmail through Google OAuth. Because Gmail inbox data is sensitive, the live Gmail
+          connection is currently limited to approved test users while the app remains in OAuth testing/verification mode.
+        </p>
+        <p class="pre-demo-splash__notice-body">
+          Recruiters and reviewers can still explore the demo dashboard and watch the live Gmail walkthrough. If they
+          want to test InboxIQ with their own Gmail account, they can request access and be added as an approved tester.
+        </p>
+      </div>
+      <div class="pre-demo-splash__actions">
+        <button type="button" class="btn btn--splash-primary" id="splash-enter-demo">
+          Enter Demo Dashboard
+        </button>
+        <button type="button" class="btn btn--splash-secondary" id="splash-watch-walkthrough">
+          Watch Live Gmail Walkthrough
+        </button>
+        <div class="pre-demo-splash__request-wrap">
+          <a
+            class="btn btn--splash-ghost"
+            id="splash-request-access"
+            href="{{ splash_test_access_mailto }}"
+          >Request Test Access</a>
+          <p class="pre-demo-splash__access-hint">
+            To test the live Gmail connection, request access and I'll add your Gmail as an approved OAuth test user.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="page">
+    <header class="product-header">
+      <div class="product-header__row">
+        <span class="logo" aria-hidden="true">◈</span>
+        <div class="product-header__copy">
+          <h1 class="product-header__title">InboxIQ</h1>
+          <p class="product-header__tagline">Turn messy inbox messages into structured action items.</p>
+          <ul class="product-header__badges" aria-label="Tech highlights">
+            <li><span class="tech-badge">Flask</span></li>
+            <li><span class="tech-badge tech-badge--accent">OpenAI-ready</span></li>
+            <li><span class="tech-badge tech-badge--muted">Gmail API-ready</span></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <nav class="mode-switcher" aria-label="Inbox source">
+      <a href="{{ url_for('index') }}" class="btn btn--mode {% if inbox_mode == 'demo' %}is-active{% endif %}">Demo Inbox</a>
+      <a href="{{ url_for('live_inbox') }}" class="btn btn--mode {% if inbox_mode == 'live' %}is-active{% endif %}">Live Inbox</a>
+      <a href="{{ url_for('connect_gmail') }}" class="btn btn--connect">Connect Gmail</a>
+    </nav>
+
+    <div class="mode-banner {% if inbox_mode == 'live' %}mode-banner--live{% endif %}" role="status">
+      <p class="mode-banner__text">
+        {% if inbox_mode == 'demo' %}
+          <strong class="mode-banner__strong">Demo Mode:</strong> sample inbox emails
+        {% else %}
+          <strong class="mode-banner__strong">Live Mode:</strong> Gmail inbox sync
+        {% endif %}
+      </p>
+    </div>
+
+    {% if inbox_mode == 'demo' %}
+    <div class="banner-demo banner-demo--compact" role="note">
+      <p class="banner-demo__text">
+        Try <strong>Live Inbox</strong> after adding <code>credentials.json</code> — see README “Live Gmail Sync Setup”.
+      </p>
+    </div>
+    {% endif %}
+
+    <div class="top-actions">
+      <a class="btn btn--json" href="{{ url_for(json_route) }}" target="_blank" rel="noopener noreferrer">
+        View JSON Output
+      </a>
+    </div>
+
+    <section class="live-gmail-demo" id="live-gmail-walkthrough" tabindex="-1" aria-labelledby="live-gmail-demo-heading">
+      <h2 id="live-gmail-demo-heading" class="live-gmail-demo__title">Live Gmail Demo</h2>
+      <p class="live-gmail-demo__lead">
+        This demo shows InboxIQ connecting to Gmail through OAuth and converting real inbox messages into structured action cards.
+      </p>
+      <div class="live-gmail-demo__video-shell">
+        <video controls class="walkthrough-video">
+          <source src="{{ url_for('static', filename='videos/inboxiq-live-gmail-demo.mp4') }}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+      <p class="live-gmail-demo__privacy-note">
+        Private inbox data is not stored publicly. Demo mode uses sample inbox emails for safe recruiter review.
+      </p>
+    </section>
+
+    <section class="how-it-works" aria-labelledby="how-heading">
+      <h2 id="how-heading" class="section-title">How it works</h2>
+      <ol class="steps">
+        <li class="steps__item">
+          <span class="steps__num" aria-hidden="true">1</span>
+          <div class="steps__body">
+            <strong class="steps__lead">Ingest messy email messages</strong>
+            <span class="steps__detail">Demo uses curated sample inbox emails; Live pulls recent threads from Gmail after OAuth (readonly).</span>
+          </div>
+        </li>
+        <li class="steps__item">
+          <span class="steps__num" aria-hidden="true">2</span>
+          <div class="steps__body">
+            <strong class="steps__lead">AI classifies intent and priority</strong>
+            <span class="steps__detail">Each message gets a category (e.g. Action Needed, Schedule) and a priority level.</span>
+          </div>
+        </li>
+        <li class="steps__item">
+          <span class="steps__num" aria-hidden="true">3</span>
+          <div class="steps__body">
+            <strong class="steps__lead">InboxIQ extracts deadlines, scheduling needs, and suggested replies</strong>
+            <span class="steps__detail">Structured fields plus an optional draft reply appear on each card below.</span>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    {% if inbox_mode == 'demo' %}
+    <section class="demo-data-callout" aria-labelledby="demo-data-heading">
+      <h2 id="demo-data-heading" class="visually-hidden">Demo dataset</h2>
+      <span class="demo-data-callout__pill">Demo data</span>
+      <p class="demo-data-callout__text">
+        The inbox below uses <strong>six sample inbox emails</strong> to demonstrate the workflow. Live Inbox uses Gmail OAuth to analyze real connected inbox messages.
+        Switch to <strong>Live Inbox</strong> after signing in (tokens stay on disk only).
+      </p>
+    </section>
+    {% endif %}
+
+    {% if live_fetch_error %}
+    <div class="live-alert" role="alert">
+      <p class="live-alert__text">{{ live_fetch_error }}</p>
+    </div>
+    {% endif %}
+
+    {% if live_show_setup %}
+    <section id="live-setup-card" class="setup-card" aria-labelledby="setup-card-heading">
+      <h2 id="setup-card-heading" class="setup-card__title">Live Gmail setup</h2>
+      {% if live_setup_variant == 'missing_credentials' %}
+      <p class="setup-card__text">
+        Place your Google OAuth client JSON in the project root as <code>credentials.json</code>
+        (see README). Then return here and click <strong>Connect Gmail</strong> to sign in.
+      </p>
+      {% else %}
+      <p class="setup-card__text">
+        Live Gmail sync is not connected yet. Add <code>credentials.json</code>, then click <strong>Connect Gmail</strong>.
+      </p>
+      {% endif %}
+      <div class="setup-card__actions">
+        <a href="{{ url_for('connect_gmail') }}" class="btn btn--connect btn--connect-inline">Connect Gmail</a>
+        <a href="{{ url_for('index') }}" class="btn btn--ghost btn--connect-inline">Back to Demo Inbox</a>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="stats" aria-label="Inbox summary (visible emails)" aria-live="polite">
+      <article class="stat-card stat-card--accent">
+        <span class="stat-card__label">Total emails</span>
+        <span class="stat-card__value" id="stat-total">{% if stats_seed is not none %}{{ stats_seed.total }}{% else %}0{% endif %}</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-card__label">Action Needed</span>
+        <span class="stat-card__value" id="stat-action">{% if stats_seed is not none %}{{ stats_seed.action_needed }}{% else %}0{% endif %}</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-card__label">Scheduling</span>
+        <span class="stat-card__value" id="stat-schedule">{% if stats_seed is not none %}{{ stats_seed.scheduling }}{% else %}0{% endif %}</span>
+      </article>
+      <article class="stat-card">
+        <span class="stat-card__label">Follow-ups</span>
+        <span class="stat-card__value" id="stat-followup">{% if stats_seed is not none %}{{ stats_seed.follow_ups }}{% else %}0{% endif %}</span>
+      </article>
+      <article class="stat-card stat-card--warn">
+        <span class="stat-card__label">Urgent</span>
+        <span class="stat-card__value" id="stat-urgent">{% if stats_seed is not none %}{{ stats_seed.urgent }}{% else %}0{% endif %}</span>
+      </article>
+    </section>
+
+    <section class="inbox-toolbar" aria-label="Search and filters">
+      <div class="toolbar-search">
+        <label class="toolbar-search__label" for="inbox-search">Search inbox</label>
+        <input
+          class="toolbar-search__input"
+          type="search"
+          id="inbox-search"
+          name="q"
+          placeholder="Search sender, subject, task summary, deadline, suggested reply…"
+          autocomplete="off"
+          spellcheck="false"
+        >
+      </div>
+      <div class="toolbar-groups">
+        <div class="toolbar-group">
+          <span class="toolbar-group__label" id="label-cat">Category</span>
+          <div class="filter-chip-row" data-filter-group="category" role="group" aria-labelledby="label-cat">
+            <button type="button" class="filter-chip is-active" data-category="all">All</button>
+            <button type="button" class="filter-chip" data-category="Action Needed">Action Needed</button>
+            <button type="button" class="filter-chip" data-category="Schedule">Schedule</button>
+            <button type="button" class="filter-chip" data-category="Follow-up">Follow-up</button>
+            <button type="button" class="filter-chip" data-category="FYI">FYI</button>
+            <button type="button" class="filter-chip" data-category="Urgent">Urgent</button>
+          </div>
+        </div>
+        <div class="toolbar-group">
+          <span class="toolbar-group__label" id="label-pri">Priority</span>
+          <div class="filter-chip-row" data-filter-group="priority" role="group" aria-labelledby="label-pri">
+            <button type="button" class="filter-chip is-active" data-priority="all">All priorities</button>
+            <button type="button" class="filter-chip" data-priority="High">High</button>
+            <button type="button" class="filter-chip" data-priority="Medium">Medium</button>
+            <button type="button" class="filter-chip" data-priority="Low">Low</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="section-title section-title--grid">Analyzed emails</h2>
+
+    <div class="cards-region">
+      <div id="empty-state" class="empty-state is-hidden" aria-hidden="true">
+        <p class="empty-state__text">No matching emails found.</p>
+      </div>
+      <main class="grid" id="email-grid">
+        {% for item in emails %}
+        {% set a = item.analysis %}
+        <article
+          class="card"
+          data-category="{{ a.category }}"
+          data-priority="{{ a.priority }}"
+          data-search="{{ item.search_blob }}"
+        >
+          <header class="card__header">
+            <div class="card__from">
+              <span class="card__kicker">From</span>
+              <span class="card__sender">{{ item.sender }}</span>
+            </div>
+            <div class="badges">
+              <span class="badge badge--category badge--cat-{{ a.category | lower | replace(' ', '-') | replace('/', '') }}">{{ a.category }}</span>
+              <span class="badge badge--priority badge--pri-{{ a.priority | lower }}">{{ a.priority }}</span>
+            </div>
+          </header>
+          <div class="card__block card__block--subject">
+            <span class="card__kicker card__kicker--inline">Subject</span>
+            <h2 class="card__subject">{{ item.subject }}</h2>
+          </div>
+          <div class="card__block card__block--preview">
+            <span class="card__kicker card__kicker--inline">Original preview</span>
+            <blockquote class="card__preview">{{ item.body_preview }}</blockquote>
+          </div>
+          <div class="card__block card__block--structured">
+            <span class="card__kicker card__kicker--inline">Structured output</span>
+            <dl class="card__fields">
+              <div class="field">
+                <dt>Task summary</dt>
+                <dd>{{ a.task_summary }}</dd>
+              </div>
+              <div class="field">
+                <dt>Deadline</dt>
+                <dd>{{ a.deadline }}</dd>
+              </div>
+              <div class="field">
+                <dt>Scheduling need</dt>
+                <dd>{{ a.scheduling_need }}</dd>
+              </div>
+              <div class="field field--reply">
+                <dt>Suggested reply</dt>
+                <dd>
+                  <div class="reply-toolbar">
+                    <button type="button" class="btn btn--small btn--ghost btn--copy">Copy suggested reply</button>
+                  </div>
+                  <div class="reply" role="text">{{ a.suggested_reply }}</div>
+                </dd>
+              </div>
+              <div class="field field--reason">
+                <dt>Reason</dt>
+                <dd>{{ a.reason }}</dd>
+              </div>
+            </dl>
+          </div>
+        </article>
+        {% endfor %}
+      </main>
+    </div>
+
+    <footer class="footer">
+      <p>Built for HackHarvard 2025 using Flask, OpenAI, and Gmail API-ready architecture.</p>
+    </footer>
+  </div>
+  <script src="{{ url_for('static', filename='js/inbox.js') }}" defer></script>
+  {% if inbox_mode == 'demo' %}
+  <script src="{{ url_for('static', filename='js/splash.js') }}" defer></script>
+  {% endif %}
+</body>
+</html>
