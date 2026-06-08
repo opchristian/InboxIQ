@@ -234,6 +234,50 @@
       </article>
     </section>
 
+    {% set action_plan = action_plan if action_plan is defined else {'has_items': false, 'groups': [], 'full_text': ''} %}
+    <section
+      class="action-plan"
+      id="action-plan-section"
+      aria-label="Today's action plan"
+      data-initial-copy="{{ action_plan.full_text | e }}"
+    >
+      <div class="action-plan__header">
+        <div class="action-plan__intro">
+          <h2 class="action-plan__title">Today's Action Plan</h2>
+          <p class="action-plan__subtitle">
+            This plan summarizes all analyzed emails. Use the filters below to inspect specific categories.
+          </p>
+        </div>
+        <div class="action-plan__toolbar">
+          <button
+            type="button"
+            class="btn btn--small btn--ghost"
+            id="copy-action-plan"
+            aria-live="polite"
+            {% if not action_plan.has_items %}disabled{% endif %}
+          >
+            Copy Action Plan
+          </button>
+        </div>
+      </div>
+      <div id="action-plan-content" class="action-plan__content">
+        {% if action_plan.has_items %}
+        {% for group in action_plan.groups %}
+        <div class="action-plan__group" data-action-plan-group="{{ group.key }}">
+          <h3 class="action-plan__group-title">{{ group.title }}</h3>
+          <ul class="action-plan__list">
+            {% for line in group.lines %}
+            <li>{{ line }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="action-plan__empty">No action plan yet. Analyze inbox emails to generate one.</p>
+        {% endif %}
+      </div>
+    </section>
+
     <section class="inbox-toolbar" aria-label="Search and filters">
       <div class="toolbar-search">
         <label class="toolbar-search__label" for="inbox-search">Search inbox</label>
@@ -275,7 +319,7 @@
 
     <div class="cards-region">
       <div id="empty-state" class="empty-state is-hidden" aria-hidden="true">
-        <p class="empty-state__text">No matching emails found.</p>
+        <p class="empty-state__text">No emails match your current filters.</p>
       </div>
       <main class="grid" id="email-grid">
         {% for item in emails %}
@@ -285,6 +329,8 @@
           data-category="{{ a.category }}"
           data-priority="{{ a.priority }}"
           data-search="{{ item.search_blob }}"
+          data-action-group="{{ item.action_plan_group | default('', true) }}"
+          data-action-line="{{ item.action_plan_line | default('', true) | e }}"
         >
           <header class="card__header">
             <div class="card__from">
@@ -343,7 +389,7 @@
       <p>Built for HackHarvard 2025 using Flask, OpenAI, and Gmail API-ready architecture.</p>
     </footer>
   </div>
-  <script src="{{ url_for('static', filename='js/inbox.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/inbox.js') }}?v=5" defer></script>
   {% if inbox_mode == 'demo' %}
   <script src="{{ url_for('static', filename='js/splash.js') }}" defer></script>
   {% endif %}

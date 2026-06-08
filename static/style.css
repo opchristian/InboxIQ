@@ -753,6 +753,133 @@ body {
   letter-spacing: -0.02em;
 }
 
+/* Today's Action Plan */
+.action-plan {
+  display: block;
+  margin-bottom: 1.75rem;
+  padding: 1.2rem 1.25rem 1.15rem;
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  min-height: 6.5rem;
+}
+
+.action-plan__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.action-plan__intro {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.action-plan__title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.action-plan__subtitle {
+  margin: 0.4rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: rgba(148, 163, 184, 0.95);
+  max-width: 42rem;
+}
+
+.action-plan__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.action-plan__content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 720px) {
+  .action-plan__content {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.action-plan__group {
+  padding: 0.85rem 0.95rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border);
+}
+
+.action-plan__group-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--accent);
+}
+
+.action-plan__group[data-action-plan-group="urgent"] .action-plan__group-title {
+  color: #fca5a5;
+}
+
+.action-plan__group[data-action-plan-group="scheduling"] .action-plan__group-title {
+  color: #93c5fd;
+}
+
+.action-plan__group[data-action-plan-group="follow_ups"] .action-plan__group-title {
+  color: #c4b5fd;
+}
+
+.action-plan__group[data-action-plan-group="fyi"] .action-plan__group-title {
+  color: var(--muted);
+}
+
+.action-plan__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.action-plan__list li {
+  position: relative;
+  padding-left: 1rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #e2e8f0;
+}
+
+.action-plan__list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.action-plan__empty {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+  padding: 0.5rem 0.25rem;
+}
+
 /* Email grid */
 .grid {
   display: grid;
@@ -776,6 +903,10 @@ body {
   flex-direction: column;
   gap: 0;
   overflow: hidden;
+}
+
+.card[hidden] {
+  display: none !important;
 }
 
 .card__header {

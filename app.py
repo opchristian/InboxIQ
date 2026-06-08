@@ -149,14 +149,19 @@ Office hours Fri 3–5pm Science Center rm 209.
 ]
 
 
-def build_search_blob(sender: str, subject: str, analysis: dict[str, Any]) -> str:
+def build_search_blob(
+    sender: str, subject: str, body_preview: str, analysis: dict[str, Any]
+) -> str:
     """Lowercased concatenation for client-side search (no secrets)."""
     parts = [
         sender,
         subject,
+        body_preview,
         analysis.get("task_summary", ""),
         analysis.get("deadline", ""),
+        analysis.get("scheduling_need", ""),
         analysis.get("suggested_reply", ""),
+        analysis.get("reason", ""),
     ]
     return " ".join(parts).lower()
 
@@ -266,7 +271,7 @@ def _analyzed_record_from_raw(email: dict[str, Any]) -> dict[str, Any]:
         "body_preview": preview,
         "analysis": structured,
         "search_blob": build_search_blob(
-            email["sender"], email["subject"], structured
+            email["sender"], email["subject"], preview, structured
         ),
     }
 
@@ -296,6 +301,145 @@ def compute_stats_from_emails(emails: list[dict[str, Any]]) -> dict[str, int]:
         "follow_ups": sum(1 for a in analyses if a["category"] == "Follow-up"),
         "urgent": sum(1 for a in analyses if a["category"] == "Urgent"),
     }
+
+
+ACTION_PLAN_GROUP_ORDER: tuple[tuple[str, str], ...] = (
+    ("urgent", "Urgent"),
+    ("scheduling", "Scheduling"),
+    ("follow_ups", "Follow-ups"),
+    ("fyi", "FYI"),
+)
+
+EMPTY_ACTION_PLAN: dict[str, Any] = {
+    "has_items": False,
+    "groups": [],
+    "full_text": "",
+}
+
+
+def _sender_display_name(sender: str) -> str:
+    """Human-readable name from a From header (e.g. 'Jane Doe <j@x.com>' → 'Jane Doe')."""
+    if "<" in sender:
+        return sender.split("<", 1)[0].strip().strip('"').strip("'")
+    return sender.strip()
+
+
+def _first_sentence(text: str, max_len: int = 120) -> str:
+    """First sentence or clause, trimmed for action-plan bullets."""
+    if not text:
+        return ""
+    cleaned = re.sub(r"\s+", " ", text.strip())
+    parts = re.split(r"(?<=[.!?])\s+", cleaned, maxsplit=1)
+    sentence = parts[0].strip()
+    if len(sentence) > max_len:
+        return sentence[: max_len - 3].rstrip() + "..."
+    return sentence
+
+
+def _is_calendar_style_message(sender: str, subject: str) -> bool:
+    combined = f"{sender} {subject}".lower()
+    return any(
+        kw in combined
+        for kw in ("calendar", "noreply@", "invitation", "invite", "rsvp", "google meet")
+    )
+
+
+def action_plan_group_for_category(category: str) -> Optional[str]:
+    """Map analysis category to a Today's Action Plan bucket."""
+    if category == "Urgent":
+        return "urgent"
+    if category == "Schedule":
+        return "scheduling"
+    if category in ("Follow-up", "Action Needed"):
+        return "follow_ups"
+    if category == "FYI":
+        return "fyi"
+    return None
+
+
+def format_action_plan_line(item: dict[str, Any]) -> str:
+    """One recruiter-friendly bullet line from an analyzed email record."""
+    analysis = item["analysis"]
+    category = analysis.get("category", "")
+    sender = item.get("sender", "")
+    subject = item.get("subject", "")
+    name = _sender_display_name(sender)
+    task = (analysis.get("task_summary") or "").strip()
+    scheduling = (analysis.get("scheduling_need") or "").strip()
+    deadline = (analysis.get("deadline") or "").strip()
+    suggested = (analysis.get("suggested_reply") or "").strip()
+
+    if category == "FYI":
+        label = subject.split("—")[0].split(" - ")[0].strip() or name
+        return f"{label}: No response needed."
+
+    if category == "Schedule":
+        action = _first_sentence(task or scheduling or subject)
+        if _is_calendar_style_message(sender, subject):
+            return f"Calendar invite: {action}"
+        return f"{name}: {action}" if name else action
+
+    if category == "Urgent":
+        action = _first_sentence(task or deadline or subject)
+        return f"{name}: {action}" if name else action
+
+    action = _first_sentence(task or suggested or subject)
+    return f"{name}: {action}" if name else action
+
+
+def format_action_plan_copy_text(groups: list[dict[str, Any]]) -> str:
+    """Plain-text action plan for clipboard copy."""
+    if not groups:
+        return ""
+    lines = ["Today's InboxIQ Action Plan", ""]
+    for group in groups:
+        lines.append(group["title"])
+        for bullet in group["lines"]:
+            lines.append(f"• {bullet}")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def build_action_plan_from_emails(emails: list[dict[str, Any]]) -> dict[str, Any]:
+    """Group analyzed emails into Today's Action Plan sections."""
+    buckets: dict[str, list[str]] = {key: [] for key, _ in ACTION_PLAN_GROUP_ORDER}
+
+    for item in emails:
+        category = item["analysis"].get("category", "")
+        group = action_plan_group_for_category(category)
+        if not group:
+            continue
+        line = format_action_plan_line(item)
+        if line:
+            buckets[group].append(line)
+
+    # Use "lines" (not "items") so Jinja templates can iterate without hitting dict.items().
+    groups = [
+        {"key": key, "title": title, "lines": buckets[key]}
+        for key, title in ACTION_PLAN_GROUP_ORDER
+        if buckets[key]
+    ]
+    return {
+        "has_items": bool(groups),
+        "groups": groups,
+        "full_text": format_action_plan_copy_text(groups),
+    }
+
+
+def enrich_emails_with_action_plan(emails: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Attach per-card action plan metadata used by the dashboard and client filters."""
+    for item in emails:
+        category = item["analysis"].get("category", "")
+        group = action_plan_group_for_category(category)
+        item["action_plan_group"] = group or ""
+        item["action_plan_line"] = format_action_plan_line(item) if group else ""
+    return emails
+
+
+def prepare_dashboard_emails(emails: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Enrich analyzed rows and build the grouped action plan from the same dataset."""
+    enriched = enrich_emails_with_action_plan(list(emails))
+    return enriched, build_action_plan_from_emails(enriched)
 
 
 def get_openai_client() -> Optional[OpenAI]:
@@ -996,11 +1140,12 @@ def analyze_all() -> list[dict[str, Any]]:
 @app.route("/")
 def index():
     """Demo dashboard with curated sample emails analyzed server-side (no Live Gmail on this route)."""
-    emails = analyze_all()
+    emails, action_plan = prepare_dashboard_emails(analyze_all())
     stats_seed = compute_stats_from_emails(emails)
     return render_template(
         "index.html",
         emails=emails,
+        action_plan=action_plan,
         stats_seed=stats_seed,
         inbox_mode="demo",
         live_show_setup=False,
@@ -1047,6 +1192,7 @@ def live_inbox():
         return render_template(
             "index.html",
             emails=[],
+            action_plan=EMPTY_ACTION_PLAN,
             stats_seed=None,
             inbox_mode="live",
             live_show_setup=True,
@@ -1061,6 +1207,7 @@ def live_inbox():
         return render_template(
             "index.html",
             emails=[],
+            action_plan=EMPTY_ACTION_PLAN,
             stats_seed=empty_stats,
             inbox_mode="live",
             live_show_setup=False,
@@ -1071,11 +1218,12 @@ def live_inbox():
             json_route="api_live_analyze",
         )
 
-    emails = analyze_email_records(raw)
+    emails, action_plan = prepare_dashboard_emails(analyze_email_records(raw))
     stats_seed = compute_stats_from_emails(emails)
     return render_template(
         "index.html",
         emails=emails,
+        action_plan=action_plan,
         stats_seed=stats_seed,
         inbox_mode="live",
         live_show_setup=False,
