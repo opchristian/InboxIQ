@@ -1133,22 +1133,6 @@ body {
   line-height: 1.55;
 }
 
-.dashboard-footer {
-  margin-top: 72px;
-  padding-top: 32px;
-  padding-bottom: 40px;
-  border-top: 1px solid rgba(56, 189, 248, 0.22);
-  text-align: center;
-  color: rgba(203, 213, 225, 0.78);
-}
-
-.dashboard-footer p {
-  margin: 0 auto;
-  max-width: 620px;
-  line-height: 1.6;
-  font-size: 0.95rem;
-}
-
 /* --------------------------------------------------------------------------
    Pre-demo splash (demo route only)
    -------------------------------------------------------------------------- */
@@ -1360,4 +1344,22 @@ a.btn--splash-ghost {
   .pre-demo-splash__title {
     font-size: 1.72rem;
   }
+}
+
+/* Dashboard footer — keep at end of file to override cached/older rules */
+.dashboard-footer {
+  width: 100%;
+  margin-top: 72px;
+  padding-top: 32px;
+  padding-bottom: 48px;
+  border-top: 1px solid rgba(56, 189, 248, 0.28);
+  text-align: center;
+  color: rgba(203, 213, 225, 0.82);
+}
+
+.dashboard-footer p {
+  margin: 0 auto;
+  max-width: 720px;
+  line-height: 1.6;
+  font-size: 0.95rem;
 }
