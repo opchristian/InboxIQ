@@ -1133,29 +1133,20 @@ body {
   line-height: 1.55;
 }
 
-.footer {
-  margin-top: 3rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
+.dashboard-footer {
+  margin-top: 72px;
+  padding-top: 32px;
+  padding-bottom: 40px;
+  border-top: 1px solid rgba(56, 189, 248, 0.22);
   text-align: center;
-  font-size: 0.84rem;
-  color: var(--muted);
-  line-height: 1.55;
-  max-width: 52ch;
-  margin-left: auto;
-  margin-right: auto;
+  color: rgba(203, 213, 225, 0.78);
 }
 
-.footer p {
-  margin: 0;
-}
-
-.footer code {
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  background: var(--bg-elevated);
+.dashboard-footer p {
+  margin: 0 auto;
+  max-width: 620px;
+  line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 /* --------------------------------------------------------------------------
