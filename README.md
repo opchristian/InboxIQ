@@ -2,7 +2,7 @@
 
 **Live Demo:** https://inboxiq-8egt.onrender.com
 
-InboxIQ is an AI-powered inbox assistant that converts unstructured emails into structured tasks, deadlines, priorities, scheduling needs, and suggested replies.
+InboxIQ is an AI-powered email productivity assistant that converts messy inbox messages into structured tasks, priorities, scheduling needs, follow-ups, suggested replies, reasons, and a **Today’s Action Plan**.
 
 ## Problem
 
@@ -10,15 +10,15 @@ Important emails are buried in messy inboxes, making it easy to miss deadlines, 
 
 ## Solution
 
-InboxIQ analyzes unstructured email content and turns it into structured action cards so you can see what matters at a glance.
+InboxIQ does more than summarize email. It turns messages into **structured action cards** and a **dashboard-level Today’s Action Plan** that users can quickly review or copy—so priorities, follow-ups, and scheduling needs are easy to act on.
 
 ## System Design
 
-InboxIQ is built as an **AI-powered email intelligence platform**: it helps users and teams make sense of noisy inboxes by summarizing messages, surfacing what is urgent, grouping content by category, and presenting everything in a **structured dashboard** aimed at productivity. It ships with a **safe demo experience** and an optional **live Gmail** path backed by the official **Gmail API** and Google OAuth.
+InboxIQ is an **AI-powered email intelligence platform** for turning noisy inboxes into structured action cards, a **Today’s Action Plan**, and recruiter-friendly dashboard views. It ships with a **safe demo experience**, an embedded Gmail walkthrough video, and an OAuth-ready **live Gmail** path (readonly scope, approved test users during testing).
 
 ### 1. System Design Overview
 
-At a high level, InboxIQ is a **Flask web application** with a browser-based UI. Users choose whether they are looking at **curated sample emails** (demo) or **their own inbox** (live Gmail). In both cases, the same **email processing and analysis pipeline** turns raw message text into **structured insights**—summaries, priorities, categories, deadlines, scheduling cues, and suggested replies—then renders them as **action cards** you can scan, search, and filter. Optionally, an **OpenAI-powered** model improves extraction quality; if no API key is configured, a **heuristic fallback** still produces useful structure so demos stay reliable.
+At a high level, InboxIQ is a **Flask web application** with a browser-based UI. Users choose **demo** (sample emails) or **live Gmail** (OAuth-ready, approved test users during testing). Both modes share one pipeline that produces structured cards, metrics, **Today’s Action Plan**, search/filters, suggested replies, and JSON output. OpenAI improves extraction when configured; a **heuristic fallback** keeps demos reliable without an API key.
 
 ### 2. Architecture Diagram
 
@@ -26,69 +26,75 @@ End-to-end flow from a recruiter or user through the UI, data sources, processin
 
 ```mermaid
 flowchart TD
-    A[User / Recruiter] --> B[InboxIQ Web Interface]
-    B --> C{Mode Selection}
+    A[User / Recruiter] --> B[InboxIQ App]
+    B --> C{Mode}
 
-    C -->|Demo Mode| D[Sample Email Dataset]
-    C -->|Live Gmail Mode| E[Gmail OAuth Login]
-
+    C -->|Demo| D[Sample Emails]
+    C -->|Live Gmail| E[Google OAuth]
     E --> F[Gmail API]
-    F --> G[User Inbox Emails]
+    F --> G[Inbox Emails]
 
-    D --> H[Email Processing Layer]
+    D --> H[Email Parser]
     G --> H
 
-    H --> I[AI Analysis Engine]
-    I --> J[Email Summarization]
-    I --> K[Priority Detection]
-    I --> L[Category Classification]
-    I --> M[Action Insight Extraction]
+    H --> I[AI Analysis]
 
-    J --> N[Structured Email Dashboard]
+    I --> J[Summary]
+    I --> K[Priority]
+    I --> L[Category]
+    I --> M[Actions]
+
+    J --> N[Email Cards]
     K --> N
     L --> N
     M --> N
 
-    N --> O[User Views Organized Inbox Insights]
+    N --> O[Today Plan]
+    N --> P[Search / Filters]
+    N --> Q[Reply Drafts]
+    N --> R[JSON Output]
+
+    O --> S[Dashboard]
+    P --> S
+    Q --> S
+    R --> S
 ```
 
-InboxIQ is designed around a simple but scalable email intelligence flow. The user first enters the web interface and chooses between demo access or live Gmail access. Demo mode uses sample email data so recruiters can test the platform quickly without connecting an account. Live Gmail mode uses Google OAuth and the Gmail API to securely retrieve real inbox messages after user permission.
-
-Once email data is available, the processing layer prepares the messages for analysis. The AI analysis engine then summarizes email content, detects priority, classifies messages into useful categories, and extracts action-oriented insights. The final results are displayed in a structured dashboard so users can understand their inbox faster and focus on the most important messages.
+InboxIQ supports two paths: a safe **demo mode** and a **live Gmail mode**. Both paths use the same processing pipeline. Emails are parsed, analyzed, categorized, prioritized, and transformed into structured cards. The dashboard then shows a **Today’s Action Plan**, search and filters, suggested replies, and JSON output.
 
 ### 3. How the AI Email Analysis Flow Works
 
-1. **Input** — The app receives one or more email records (sender, subject, and body text), either from the **built-in sample dataset** or from **Gmail** after OAuth.
-2. **Normalization** — Message text is prepared for analysis (same code path for demo and live so behavior stays comparable).
-3. **Analysis** — The **AI analysis engine** enriches each message: concise **summary**, **priority** signal, **category**, key **actions** (tasks, deadlines, meetings), and when configured, **suggested replies**.
-4. **Aggregation** — Results are combined with **lightweight statistics** (for example, counts by category or priority) to seed the dashboard.
-5. **Presentation** — The **web interface** renders **structured cards**, with client-side **search and filters**, plus optional **JSON APIs** for integrations or demos (`/api/analyze` for demo data, `/api/live-analyze` for live Gmail).
+1. **Input** — Demo emails from the sample dataset, or Gmail emails after OAuth (readonly scope).
+2. **Normalization** — Clean subject, body, and sender data using the same pipeline for demo and live.
+3. **Analysis** — Generate summary, priority, category, deadline, scheduling need, suggested reply, and reason for each message.
+4. **Aggregation** — Compute dashboard metrics and build **Today’s Action Plan** from all analyzed emails.
+5. **Presentation** — Render structured cards with **search**, **category/priority filters**, **Copy Action Plan**, suggested-reply copy buttons, and JSON output (`/api/analyze`, `/api/live-analyze`).
 
 This pipeline is intentionally **server-side**: sensitive processing and API keys stay on the server; the browser receives HTML and JSON appropriate for the public demo.
 
 ### 4. Key Components
 
-- **Web Interface:** Provides the main dashboard, demo access, and live Gmail connection flow.
-- **Gmail API Integration:** Allows InboxIQ to read inbox messages only after the user grants permission.
-- **Email Processing Layer:** Cleans and organizes email content before sending it for AI analysis.
-- **AI Analysis Engine:** Generates summaries, detects priority, classifies messages, and extracts useful insights.
-- **Dashboard Output:** Presents the analyzed emails in a clean, structured, recruiter-friendly interface.
+- **Web Interface:** Demo dashboard, live Gmail flow, embedded walkthrough video, and recruiter splash.
+- **Gmail API Integration:** Read-only inbox access after user consent (OAuth-ready; limited to approved test users during testing).
+- **Email Processing Layer:** Parses and normalizes email content before analysis.
+- **AI Analysis Engine:** Summary, priority, category, deadlines, scheduling needs, suggested replies, and reasons.
+- **Dashboard Output:** Email cards, Today’s Action Plan, search/filters, copy buttons, and JSON view.
 
 ### 5. Demo Mode vs Live Gmail Mode
 
 **Demo Mode:**
 
-- Lets recruiters test the product immediately.
-- Uses prepared email examples.
+- Always available on the live demo and locally.
+- Uses sample email data.
+- Useful for recruiters and reviewers.
 - Does not require Gmail login.
-- Useful for quick portfolio review.
 
 **Live Gmail Mode:**
 
-- Lets users connect a real Gmail inbox.
-- Uses OAuth for permission-based access.
-- Retrieves real emails through the Gmail API.
-- Shows how the platform can work in a real-world productivity workflow.
+- Uses Google OAuth and the Gmail API.
+- Limited to **approved test users** during OAuth testing/verification (not production-verified yet).
+- **Read-only** inbox access after user permission.
+- Real Gmail flow is also shown through the **embedded walkthrough video** on the demo dashboard.
 
 ### 6. Why This Design Matters
 
@@ -100,17 +106,23 @@ This pipeline is intentionally **server-side**: sensitive processing and API key
 
 This system design shows that InboxIQ is not just a static AI demo. It is structured like a real product with a frontend interface, authentication flow, external API integration, backend processing, and AI-powered analysis. The design makes the platform easy to demo while still supporting real Gmail inbox functionality.
 
-## Current MVP features
+## Current MVP Features
 
-- **Demo mode:** curated sample inbox emails for safe demos (always available, offline-friendly)
-- **Live mode (optional):** Gmail OAuth + recent inbox fetch (`readonly` scope) — analyzes real connected inbox messages
-- AI-ready classification workflow with structured task extraction
-- Priority and category labels; deadlines and scheduling extraction
-- Suggested reply generation with copy-to-clipboard in the UI
-- Client-side search and filters (demo and live)
-- JSON APIs: `/api/analyze` (demo dataset), `/api/live-analyze` (live Gmail)
+- **Demo mode** with sample inbox emails (recruiter-safe, always available)
+- **Live Gmail OAuth-ready mode** (readonly scope; approved test users during OAuth testing)
+- **Embedded live Gmail walkthrough video** on the demo dashboard
+- **Today’s Action Plan** — dashboard-level summary of all analyzed emails
+- **Copy Action Plan** button
+- **Search inbox** across sender, subject, preview, structured fields, and replies
+- **Category filters** (Action Needed, Schedule, Follow-up, FYI, Urgent)
+- **Priority filters** (High, Medium, Low)
+- **Structured email cards** with task summary, deadline, and scheduling need
+- **Suggested reply drafts** with copy button
+- **Reason/explanation** for each classification
+- **JSON output view** — `/api/analyze` (demo), `/api/live-analyze` (live Gmail)
+- **Recruiter-safe privacy/OAuth note** on the splash screen (demo access without Gmail login)
 
-## Tech stack
+## Tech Stack
 
 - Python
 - Flask
@@ -118,7 +130,7 @@ This system design shows that InboxIQ is not just a static AI demo. It is struct
 - Gmail API + OAuth (optional live mode)
 - HTML/CSS/JavaScript dashboard
 
-## How to run locally
+## How to Run Locally
 
 1. Install dependencies:
 
@@ -160,12 +172,19 @@ Optional flow for analyzing real inbox threads (readonly Gmail scope):
 
 **Do not commit `credentials.json` or `token.json`.** They are listed in `.gitignore`.
 
-## Future improvements
+## Future Improvements
 
-- Save tasks to a database
 - Calendar integration
-- One-click reply drafting / send via Gmail API
+- Save tasks to a database
+- Daily/weekly digest
+- More advanced priority scoring
+- Export to Google Tasks, Notion, or Trello
+- Optional one-click draft creation (not automatic sending)
 
-## Security note
+## Security Note
 
-**Do not commit `.env`.** It contains secrets such as your OpenAI API key. Keep `.env` local and use `.env.example` only as a template without real credentials.
+- **Do not commit `.env`** — contains secrets such as your OpenAI API key.
+- **Do not commit `credentials.json` or `token.json`** — Gmail OAuth client secrets and user tokens.
+- Gmail access uses a **read-only** scope for inbox analysis.
+- **Demo mode** uses sample data only; no private inbox access required for recruiter review.
+- Keep `.env` local and use `.env.example` only as a template without real credentials.
